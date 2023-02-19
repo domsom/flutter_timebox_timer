@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../widgets/round-button.dart';
-import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
+//import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
 class CountdownPage extends StatefulWidget {
   const CountdownPage({Key? key}) : super(key: key);
@@ -15,20 +15,24 @@ class _CountdownPageState extends State<CountdownPage>
   late AnimationController controller;
 
   bool isPlaying = false;
+  bool isOvertime = false;
+  double progress = 1.0;
+  Color timerColor = Colors.black;
+  Color ringColor = Colors.blue;
 
   String get countText {
     Duration count = controller.duration! * controller.value;
+    // return ((isOvertime) ? '-' : '') +
+    //     '${count.inHours}:${(count.inMinutes % 60).toString().padLeft(2, '0')}:${(count.inSeconds % 60).toString().padLeft(2, '0')}';
     return controller.isDismissed
         ? '${controller.duration!.inHours}:${(controller.duration!.inMinutes % 60).toString().padLeft(2, '0')}:${(controller.duration!.inSeconds % 60).toString().padLeft(2, '0')}'
-        : '${count.inHours}:${(count.inMinutes % 60).toString().padLeft(2, '0')}:${(count.inSeconds % 60).toString().padLeft(2, '0')}';
+        : ((isOvertime) ? '-' : '') +
+            '${count.inHours}:${(count.inMinutes % 60).toString().padLeft(2, '0')}:${(count.inSeconds % 60).toString().padLeft(2, '0')}';
   }
 
-  double progress = 1.0;
-
   void notify() {
-    if (countText == '0:00:00') {
-      FlutterRingtonePlayer.playNotification();
-    }
+    // timerColor = (isOvertime) ? Colors.red : Colors.black;
+    // ringColor = (isOvertime) ? Colors.red : Colors.blue;
   }
 
   @override
@@ -44,10 +48,18 @@ class _CountdownPageState extends State<CountdownPage>
       if (controller.isAnimating) {
         setState(() {
           progress = controller.value;
+          timerColor = (isOvertime) ? Colors.red : Colors.black;
+          ringColor = (isOvertime) ? Colors.red : Colors.blue;
         });
+      } else if (isPlaying && !isOvertime) {
+        isOvertime = true;
+        progress = 1.0;
+        setState(() {
+          isPlaying = true;
+        });
+        controller.forward(from: 0);
       } else {
         setState(() {
-          progress = 1.0;
           isPlaying = false;
         });
       }
@@ -75,6 +87,7 @@ class _CountdownPageState extends State<CountdownPage>
                   height: 300,
                   child: CircularProgressIndicator(
                     backgroundColor: Colors.grey.shade300,
+                    color: ringColor,
                     value: progress,
                     strokeWidth: 6,
                   ),
@@ -105,6 +118,7 @@ class _CountdownPageState extends State<CountdownPage>
                       style: TextStyle(
                         fontSize: 60,
                         fontWeight: FontWeight.bold,
+                        color: timerColor,
                       ),
                     ),
                   ),
@@ -125,6 +139,7 @@ class _CountdownPageState extends State<CountdownPage>
                         isPlaying = false;
                       });
                     } else {
+                      isOvertime = false;
                       controller.reverse(
                           from: controller.value == 0 ? 1.0 : controller.value);
                       setState(() {
@@ -138,10 +153,14 @@ class _CountdownPageState extends State<CountdownPage>
                 ),
                 GestureDetector(
                   onTap: () {
-                    controller.reset();
+                    isOvertime = true;
+                    // controller.reset();
+                    progress = 1.0;
                     setState(() {
                       isPlaying = false;
+                      isOvertime = false;
                     });
+                    controller.reset();
                   },
                   child: RoundButton(
                     icon: Icons.stop,
